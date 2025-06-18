@@ -51,6 +51,15 @@ class PixelGridBuilder {
 
 var dotList = [];
 
+class ParticleBuilder {
+  constructor() {
+    
+  }
+  
+  createParticle(x, y, pixelGridData) {
+    
+  }
+}
 
 class particle {
   constructor(x, y, imageData, width, height) {
@@ -67,7 +76,7 @@ class particle {
     this.createPixel = this.createPixel.bind(this);
   }
   
-  createParticleFromBitmap(x, y, imageData, width, height) {
+  createParticleFromBitmap(x, y, imageData) {
     this.particleDiv = document.createElement('div');
     this.particleDiv.className = 'dust-div';
     this.x = x;
@@ -118,7 +127,7 @@ class particle {
 addEventListener('mousemove', (e) => {
   let gridBuilder = new PixelGridBuilder(8,4);
   let imageData = gridBuilder.generatePixelGrid(particle_1, particle_x, particle_y);
-  let newParticle = new particle(e.x, e.y, imageData, particle_x, particle_y);
+  let newParticle = new particle(e.x, e.y, imageData);
   
   dotList.push(newParticle);
   if (dotList.length > 20) {
