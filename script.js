@@ -119,7 +119,7 @@ class Particle {
 //////////////////////////////////////////////////////////////
 var dotList = [];
 let prevX = 0;
-let PrevY = 0;
+let prevY = 0;
 
 let pixelScale = 1
 let gridBuilder = new PixelGridBuilder(pixelScale, (pixelScale - 1) / 2);
