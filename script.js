@@ -10,32 +10,43 @@ let particle_1 = [
 
 class PixelGridBuilder {
   constructor(pixelScale = 1, pixelSpacing = 0) {
+    // The width and height of the pixel.
     this.pixelScale = pixelScale;
+    
+    // The amount of pixels around the center. pixelScale=1 would be make 3x3 square.
     this.pixelSpacing = pixelSpacing;
+    
+    // The amount of pixels away the next generated pixel centerpoint is from the previous one.
+    // This is equal to the width or height of the square created by your choice of pixelSpacing.
+    // Make your pixelScale the same value as this to get reduce the gap.
     this.spacingOffset = pixelSpacing * 2 + 1;
   }
   
   generatePixelGrid(bitmap, width, height) {
     let newBitmap = []
     
+    // Go through each entry in the image array. Each represents one pixel and the rows and columns are coordinates.
     for (let row = 0; row < width; row++){
       for (let column = 0; column < height; column++){
-        let point = [row, column]; 
+        let point = [row, column];
         let k = row + column * height;
         if (bitmap[k] == 1) {
           let newPoint = point.map((entry) => {
               if (entry == 0) {
+                // part of coordinate is next to edge. Apply pixelSpacing only.
                 return this.pixelSpacing;
               } else {
+                // part of coordinate is not next to edge.
+                // Calculate new value. SpacingOffset is the size of the square around a point due to pixelSpacing.
+                // Multiple that by the number of squares you want to offset by. Add pixel spacing for spacing.
                 return entry * this.spacingOffset + this.pixelSpacing;
               }
             });
           
-          let newX = newPoint[0] - (this.pixelScale / 2);
-          let newY = newPoint[1] - (this.pixelScale / 2);
+          // subtract the coordinate value by pixelSpacing
           let pixelData = {
-            x: newX,
-            y: newY,
+            x: newPoint[0] - this.pixelSpacing,
+            y: newPoint[1] - this.pixelSpacing,
             width: this.pixelScale,
             height: this.pixelScale,
           }
@@ -51,35 +62,32 @@ class PixelGridBuilder {
 
 var dotList = [];
 
-
-class particle {
-  constructor(x, y, imageData, width, height) {
-    this.x = x;
-    this.y = y;
-    this.pixels = []; 
-    this.particleDiv;
+class ParticleBuilder {
+  constructor() {
     
-    // Create particle data on construction.
-    //this.createParticle(x,y);
-    //this.bmpConverter = new BitmapArrayDraw(pixelScale, pixelSpacing);
-    this.createParticleFromBitmap(x, y, imageData, width, height);
-    
-    this.createPixel = this.createPixel.bind(this);
   }
   
-  createParticleFromBitmap(x, y, imageData, width, height) {
-    this.particleDiv = document.createElement('div');
-    this.particleDiv.className = 'dust-div';
-    this.x = x;
-    this.y = y;
-    this.particleDiv.style.left = this.x + 'px';
-    this.particleDiv.style.top = this.y + 'px';
+  createParticle(x, y, pixelGridData, offset = 0) {
+    let particleDiv = document.createElement('div');
+    let x2 = x + offset;
+    let y2 = y + offset;
     
-    for (const point of imageData) {
+    particleDiv.className = 'dust-div';
+    particleDiv.style.left = x2 + 'px';
+    particleDiv.style.top = y2 + 'px';
+    
+    for (const point of pixelGridData) {
       let newPixel = this.createPixel(point.x, point.y, point.width, point.height);
-      this.particleDiv.appendChild(newPixel);
+      particleDiv.appendChild(newPixel);
     }
-    document.body.appendChild(this.particleDiv);
+    
+    // TODO: decide if I want this here or have it be done outside, so you can choose which DOM object to append to.
+    document.body.appendChild(particleDiv);
+    
+    let particle = new Particle(x, y, particleDiv);
+    particle.x = x2;
+    particle.y = y2;
+    return particle;
   }
   
   createPixel(x, y, width, height) {
@@ -91,18 +99,21 @@ class particle {
     pixel.style.height = height + 'px';
     return pixel
   }
+}
+
+class Particle {
+  constructor(x, y, particleDiv) {
+    this.x = x;
+    this.y = y;
+    this.particleDiv = particleDiv;
+  }
   
   moveX(x) {
     this.elem.style.left = x + 'px';
   }
   
   moveY(y) {
-    this.y = this.y + y;
-    //// this.elem.style.top = this.y + 'px';
-    //for (const pixel of this.pixels) {1
-    //  pixel.style.top = this.y + 'px';
-    //}
-    
+    this.y = this.y + y;  
     this.particleDiv.style.top = this.y + 'px';
   }
   
@@ -116,9 +127,12 @@ class particle {
 
 
 addEventListener('mousemove', (e) => {
-  let gridBuilder = new PixelGridBuilder(8,4);
+  let pixelScale = 1
+  let gridBuilder = new PixelGridBuilder(pixelScale, (pixelScale - 1) / 2);
+  let particleBuilder = new ParticleBuilder();
+  
   let imageData = gridBuilder.generatePixelGrid(particle_1, particle_x, particle_y);
-  let newParticle = new particle(e.x, e.y, imageData, particle_x, particle_y);
+  let newParticle = particleBuilder.createParticle(e.x, e.y, imageData); //new particle(e.x, e.y, imageData);
   
   dotList.push(newParticle);
   if (dotList.length > 20) {
@@ -138,6 +152,6 @@ function animate() {
   requestAnimationFrame(animate);
 }
 
-// animate();
+animate();
 
-setInterval(draw, 33);
+//setInterval(draw, 33);
