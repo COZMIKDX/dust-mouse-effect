@@ -124,9 +124,17 @@ class Particle {
 }
 
 
+//////////////////////////////////////////////////////////////
+// Example Usage
+//////////////////////////////////////////////////////////////
 
-
+let prevX = 0;
+let PrevY = 0;
 addEventListener('mousemove', (e) => {
+  if (Math.abs(prevX - e.x) > 50  || Math.abs(prevY - e.y) > 50) {
+    prevX = e.x;
+    prevY = e.y;
+  
   let pixelScale = 1
   let gridBuilder = new PixelGridBuilder(pixelScale, (pixelScale - 1) / 2);
   let particleBuilder = new ParticleBuilder();
@@ -138,6 +146,7 @@ addEventListener('mousemove', (e) => {
   if (dotList.length > 20) {
     let removedDot = dotList.shift();
     removedDot.deleteParticle();
+  }
   }
 });
 
