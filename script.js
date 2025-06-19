@@ -1,12 +1,4 @@
-let particle_x = 5;
-let particle_y = 5;
-let particle_1 = [
-  1,1,0,1,1,
-  1,0,1,0,1,
-  0,1,0,1,0,
-  1,0,1,0,1,
-  1,1,0,1,1
-]
+
 
 class PixelGridBuilder {
   constructor(pixelScale = 1, pixelSpacing = 0) {
@@ -59,8 +51,6 @@ class PixelGridBuilder {
   }
 }
 
-
-var dotList = [];
 
 class ParticleBuilder {
   constructor() {
@@ -127,26 +117,39 @@ class Particle {
 //////////////////////////////////////////////////////////////
 // Example Usage
 //////////////////////////////////////////////////////////////
-
+var dotList = [];
 let prevX = 0;
 let PrevY = 0;
+
+let pixelScale = 1
+let gridBuilder = new PixelGridBuilder(pixelScale, (pixelScale - 1) / 2);
+let particleBuilder = new ParticleBuilder();
+
+// Image data
+let particle_x = 5; // width
+let particle_y = 5; // height
+let particle_1 = [
+  1,1,0,1,1,
+  1,0,1,0,1,
+  0,1,0,1,0,
+  1,0,1,0,1,
+  1,1,0,1,1
+]
+let imageData = gridBuilder.generatePixelGrid(particle_1, particle_x, particle_y);
+
 addEventListener('mousemove', (e) => {
   if (Math.abs(prevX - e.x) > 50  || Math.abs(prevY - e.y) > 50) {
     prevX = e.x;
     prevY = e.y;
-  
-  let pixelScale = 1
-  let gridBuilder = new PixelGridBuilder(pixelScale, (pixelScale - 1) / 2);
-  let particleBuilder = new ParticleBuilder();
-  
-  let imageData = gridBuilder.generatePixelGrid(particle_1, particle_x, particle_y);
-  let newParticle = particleBuilder.createParticle(e.x, e.y, imageData); //new particle(e.x, e.y, imageData);
-  
-  dotList.push(newParticle);
-  if (dotList.length > 20) {
-    let removedDot = dotList.shift();
-    removedDot.deleteParticle();
-  }
+
+    let newParticle = particleBuilder.createParticle(e.x, e.y, imageData); //new particle(e.x, e.y, imageData);
+
+    // Hold onto particle objects and limit the amount.
+    dotList.push(newParticle);
+    if (dotList.length > 20) {
+      let removedDot = dotList.shift();
+      removedDot.deleteParticle();
+    }
   }
 });
 
