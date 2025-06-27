@@ -96,6 +96,8 @@ class Particle {
     this.x = x;
     this.y = y;
     this.xTrigger = 0
+    this.direction = null;
+    this.speed = null;
     
     this.particleDiv = particleDiv;
     this.xSpeed = Math.floor(Math.random() * (2 - 0 + 1)) + 0;
@@ -119,18 +121,52 @@ class Particle {
 }
 
 class AnimatedParticle {
-  constructor(particle, multiFrameImageData, animationSpeed = 1000) {
+  constructor(multiFrameImageData, animationSpeed = 1000, animationSpeedTolerance = 0, startX, startY, onFinish = null) {
+    this.intervalId = null;
     this.frame = 0;
     this.animationSpeed = animationSpeed;
+    this.animationSpeedTolerance = animationSpeedTolerance;
     this.multiFrameImageData = multiFrameImageData; //Should just be a reference to the original.
-    this.particle = particle;
     this.particleBuilder = new ParticleBuilder();
+    this.particle = this.particleBuilder.createParticle(startX, startY, this.multiFrameImageData[0]);
+    this.onFinish = onFinish; // Callback for when the animation is done. I'm thinking of using it to remove the particle from the global list.
+    
+    
+    this.advanceFrame = this.advanceFrame.bind(this);
+    this.start();
   }
   
-  updateParticle(newParticle) {
-    this.particle = newParticle;
-    this.frame
+  start() {
+    let speed = (Math.random() * this.animationSpeedTolerance) + (this.animationSpeed - this.animationSpeedTolerance)
+    this.intervalId = setInterval(() => {
+      this.advanceFrame();
+    }, speed);
   }
+  
+  advanceFrame() {
+    // increment frame value and then check if the animation is done. 
+    // If it's done, delete the interval timer and call the callback.
+    // If not done, create the next particle using position data from the current one, 
+    // then delete the old particle and replace it.
+    
+    this.frame++;
+    if (this.frame >= this.multiFrameImageData.length) {
+      clearInterval(this.intervalId);
+      if (this.onFinish) {
+        this.particle.deleteParticle();
+        this.onFinish(this);
+      }
+      return;
+    }
+    let newParticle = this.particleBuilder.createParticle(this.particle.x, this.particle.y, this.multiFrameImageData[this.frame]);
+    
+    newParticle.direction = this.particle.direction;
+    newParticle.speed = this.particle.speed;
+    this.particle.deleteParticle();
+    this.particle = newParticle;
+  }
+  
+  
 }
 //////////////////////////////////////////////////////////////
 // Example Usage
@@ -141,27 +177,17 @@ let prevY = 0;
 
 let pixelScale = 1
 let gridBuilder = new PixelGridBuilder(pixelScale, (pixelScale - 1) / 2);
-let particleBuilder = new ParticleBuilder();
 
-// Image data
-let particle_x = 5; // width
-let particle_y = 5; // height
-let particle_1 = [
-  0,0,1,0,0,
-  0,0,1,0,0,
-  1,1,1,1,1,
-  0,0,1,0,0,
-  0,0,1,0,0
-]
-let imageData = gridBuilder.generatePixelGrid(particle_1, particle_x, particle_y);
-
+// Data to be turned into pixel data.
+let image_width = 5;
+let image_height = image_width;
 let multiFrame = [
   [
-    1,1,0,1,1,
-    1,0,1,0,1,
-    0,1,0,1,0,
-    1,0,1,0,1,
-    1,1,0,1,1
+    0,0,1,0,0,
+    0,0,1,0,0,
+    1,1,1,1,1,
+    0,0,1,0,0,
+    0,0,1,0,0
   ],
   [
     0,0,0,0,0,
@@ -180,40 +206,43 @@ let multiFrame = [
 ]
 
 let animatedImage = multiFrame.map((entry) => {
-  let imageData = gridBuilder.generatePixelGrid(entry, particle_x, particle_y);
+  let imageData = gridBuilder.generatePixelGrid(entry, image_width, image_height);
   return imageData;
 });
 
-
+let minDistance = 0
 addEventListener('mousemove', (e) => {
-  if (Math.abs(prevX - e.x) > 1  || Math.abs(prevY - e.y) > 1) {
+  if (Math.abs(prevX - e.x) > minDistance  || Math.abs(prevY - e.y) > minDistance) {
     prevX = e.x;
     prevY = e.y;
+    
+    let newParticle = new AnimatedParticle(animatedImage, 2000, 400, e.x, e.y, (animatedParticle) => {
+      // callback to remove itself from the dotList array storing all of live particles when the animation is finished.
+      
+      const index = dotList.indexOf(animatedParticle);
+      if (index != -1) {
+        // Remove the particle from the array.
+        // Not exactly ideal but it should work.
+        // Particles in the effect I'm making will be deleted in a FIFO order
+        dotList.splice(index, 1);
+      }
+    });
 
-    let newParticle = particleBuilder.createParticle(e.x, e.y, imageData); //new particle(e.x, e.y, imageData);
-
-    // Hold onto particle objects and limit the amount.
     dotList.push(newParticle);
-    /*if (dotList.length > 100) {
-      let removedDot = dotList.shift();
-      removedDot.deleteParticle();
-    }*/
   }
 });
 
+
 function draw() {
   dotList.forEach((item) => {
-    let min = 0;
-    let max = 3;
-    if (!item.direction) {
-      item.direction = Math.random() < 0.5 ? (-1) : 1;  
-      item.speed = Math.random() * .2;
+    let particle = item.particle;
+    if (!particle.direction) {
+      particle.direction = Math.random() < 0.5 ? (-1) : 1;  // shift random output to [-0.5,0.5] and check the sign.
+      particle.speed = Math.random() * .2;
     }
     
-    item.moveX(item.speed * item.direction);
-    item.moveY(0.5);
-    
-    
+    particle.moveX(particle.speed * particle.direction);
+    particle.moveY(0.5);
   });
 }
 
